@@ -1,5 +1,5 @@
 # evilginx-phishlets
-Reverse proxy implementation to any kind of phishlets. Creating evilginx phishlets that can capture both users'credentials and users'cookies
+I build all kinds of phishlets, custom requests.
 
 developer: https://t.me/profcodes
 
