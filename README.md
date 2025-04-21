@@ -1,5 +1,5 @@
 # evilginx-phishlets
-I build all kinds of phishlets, custom requests.
+I build all kinds of phishlets, custom requests. hit me up
 
 developer: https://t.me/profcodes
 
