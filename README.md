@@ -43,3 +43,4 @@ ALL SCAMPAGES AVAILABLE
 # OFFICE 365 PHISHLET
 # ICLOUD PHISHLET
 evilginx phishlets
+office phishlet evilginx
